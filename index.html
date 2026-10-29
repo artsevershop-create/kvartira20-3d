@@ -175,8 +175,10 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
   const floors = new THREE.Group(), wallsFull = new THREE.Group(), wallsCut = new THREE.Group(), ceilings = new THREE.Group(), furn = new THREE.Group(), hi = new THREE.Group(), lo = new THREE.Group(), floorCtx = new THREE.Group();
   root.add(floors, wallsFull, wallsCut, ceilings, furn, hi, lo, floorCtx);
   function shade(m, cast) { m.castShadow = cast !== false; m.receiveShadow = true; return m; }
-  function B(mat, x, z, w, d, h, y0, grp) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x + w / 2, (y0 || 0) + h / 2, z + d / 2); shade(m); (grp || furn).add(m); return m; }
-  function C(mat, x, y, z, r, h, grp, seg) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg || 20), mat); m.position.set(x, y + h / 2, z); shade(m); (grp || furn).add(m); return m; }
+  // every box and cylinder is also logged, so the album generator can draw plans and elevations from the same data
+  const boxes = [], matName = (mat) => Object.keys(M).find((k) => M[k] === mat) || "?", grpName = (g) => g === hi ? "hi" : g === lo ? "lo" : g === wallsFull ? "wf" : g === wallsCut ? "wc" : g === floorCtx ? "ctx" : "f";
+  function B(mat, x, z, w, d, h, y0, grp) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x + w / 2, (y0 || 0) + h / 2, z + d / 2); shade(m); (grp || furn).add(m); boxes.push({ m: matName(mat), x: x, z: z, w: w, d: d, h: h, y: y0 || 0, g: grpName(grp || furn) }); return m; }
+  function C(mat, x, y, z, r, h, grp, seg) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg || 20), mat); m.position.set(x, y + h / 2, z); shade(m); (grp || furn).add(m); boxes.push({ m: matName(mat), x: x - r, z: z - r, w: 2 * r, d: 2 * r, h: h, y: y, g: grpName(grp || furn), cyl: true }); return m; }
   const floorMeshes = [];
   function floorPlane(mat, x, z, w, d, rep, y) {
     const g = new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), uv = g.attributes.uv;
@@ -495,7 +497,9 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
     if (dirty > 0) { dirty--; renderer.render(scene, camera); updateLabels(); if (S.cam === 'walk' && ++planTick % 3 === 0) drawPlan(); }
   }
   applyStyle('light'); setTime(false); applyView(true); renderer.shadowMap.needsUpdate = true; frame();
-  window.__kv = { S: S, camera: camera, controls: controls, renderer: renderer, scene: scene, fly: flyTo, refresh: refresh, findPath: findPath, applyView: applyView };
+  window.__kv = { S: S, camera: camera, controls: controls, renderer: renderer, scene: scene, fly: flyTo, refresh: refresh, findPath: findPath, applyView: applyView, applyStyle: applyStyle, setTime: setTime, near: near,
+    data: { W: W, D: D, H: H, CUT: CUT, OUT: OUT, TOPW: TOPW, ROOMS: ROOMS, WALLS: WALLS, DOORS: DOORS, WIN: WIN, PASS: PASS, EYE: EYE, VIEWS: VIEWS, STYLES: STYLES, boxes: boxes, colors: Object.fromEntries(Object.keys(M).map((k) => [k, "#" + M[k].color.getHexString()])) },
+    groups: { hi: hi, lo: lo, furn: furn, ceilings: ceilings, wallsFull: wallsFull, wallsCut: wallsCut, floors: floors, floorCtx: floorCtx } };
 })();
 </script>
 </body>
